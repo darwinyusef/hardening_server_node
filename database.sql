@@ -161,12 +161,15 @@ ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
 -- PERMISOS DE BD RESTRICTIVOS (principio de mínimo privilegio)
--- Crear un usuario de aplicación dedicado antes de ejecutar:
---   CREATE ROLE app_user WITH LOGIN PASSWORD 'contraseña_segura';
+-- ─────────────────────────────────────────────────────────────
+-- NOTA: El GRANT CONNECT ON DATABASE y la creación del rol
+-- app_user son manejados por scripts/migrate.sh con el nombre
+-- de base de datos dinámico ($PGDATABASE). Aquí solo se otorgan
+-- permisos a nivel de schema y tabla, que no dependen del nombre
+-- de la base de datos.
 -- ============================================================
 
--- Solo los permisos necesarios para la aplicación
-GRANT CONNECT ON DATABASE registro_usuarios TO app_user;
+-- Acceso al schema
 GRANT USAGE ON SCHEMA public TO app_user;
 
 -- SELECT, INSERT, UPDATE en tablas específicas (sin DELETE en users)

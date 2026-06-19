@@ -19,6 +19,8 @@ COPY --from=builder /app/node_modules ./node_modules
 # Copiar únicamente el servidor (sin client/, scripts/, *.md, .env*)
 COPY server/ ./server/
 COPY package.json ./
+# security.txt para la ruta /.well-known/security.txt (RFC 9116)
+COPY .well-known/ ./.well-known/
 
 ENV NODE_ENV=production
 

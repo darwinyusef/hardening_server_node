@@ -46,6 +46,13 @@
 | Credenciales reales en `.env.example` | Correo y contraseña reales expuestos | Solo placeholders | A02 - Cryptographic Failures |
 | `active` verificado después de bcrypt | Flujo incorrecto en login | Se verifica activo después de validar contraseña (anti-timing) | A07 - Auth Failures |
 | Timing attack en login | Retorno inmediato si usuario no existe | Siempre ejecuta `bcrypt.compare` | A07 - Auth Failures |
+| Check JWT_SECRET dentro de `app.listen()` | Servidor arrancaba sin secreto | Verificación antes de `app.listen()`, falla inmediata | A02 - Cryptographic Failures |
+| Sin `.env` en desarrollo local | `process.env.*` siempre vacío en local | `dotenv` carga `.env` automáticamente | A02 - Cryptographic Failures |
+| `alert()` bloqueante en frontend | Bloquea el hilo principal del navegador | Sistema toast `Notify` no bloqueante | A05 - Misconfiguration |
+| Sin política de divulgación de vulnerabilidades | No hay canal de reporte | `.well-known/security.txt` (RFC 9116) | A05 - Misconfiguration |
+| `security.txt` no servida por el servidor | Archivo existe pero no es accesible vía HTTP | Express sirve `/.well-known/` como estático | A05 - Misconfiguration |
+| GRANT CONNECT con nombre de BD hardcodeado | `GRANT CONNECT ON DATABASE registro_usuarios` | Dinámico en `migrate.sh` con `$PGDATABASE` | A05 - Misconfiguration |
+| `localStorage` para JWT en dashboard | XSS puede robar el token | `sessionStorage` (se borra al cerrar pestaña) | A02 - Cryptographic Failures |
 
 ---
 
@@ -552,6 +559,155 @@ DB_SSL=false
 **Por qué:** Express ya incluye `express.json()` y `express.urlencoded()` de forma nativa desde la versión 4.16. `body-parser` es redundante y añade una dependencia innecesaria.
 
 ---
+
+---
+
+## Frontend Hardening
+
+### .well-known/security.txt (RFC 9116)
+
+Archivo estándar internacional creado en `.well-known/security.txt`. Los investigadores de seguridad y herramientas automatizadas (como Google Safe Browsing, Shodan) buscan este archivo para saber cómo reportar vulnerabilidades.
+
+```
+Contact: mailto:seguridad@cefit.com
+Expires: 2027-06-19T00:00:00.000Z
+Preferred-Languages: es, en
+Policy: https://cefit.com/security-policy
+Acknowledgments: https://cefit.com/hall-of-fame
+```
+
+**Por qué:** Sin este archivo, un investigador que encuentre una vulnerabilidad no tiene un canal oficial para reportarla de forma responsable. Establece un proceso de *Coordinated Vulnerability Disclosure* (CVD) con ventana de 90 días antes de divulgación pública.
+
+**Servido por Express:**
+```js
+app.use('/.well-known', express.static(path.join(__dirname, '../.well-known'), {
+    setHeaders: (res) => res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+}));
+```
+
+**Por qué servir desde Express y no solo como archivo estático:** Con `read_only: true` en Docker, el filesystem es inmutable. Express lo sirve directamente desde la imagen construida, sin depender de un servidor de archivos externo.
+
+---
+
+### Notificaciones toast — notifications.js
+
+Nuevo archivo `client/assets/js/notifications.js` que reemplaza todos los `alert()` del frontend.
+
+```js
+// ANTES — bloqueante, feo, sin estilo
+alert(result.message);
+
+// DESPUÉS — no bloqueante, accesible, auto-dismiss
+Notify.success('Bienvenido, María');
+Notify.error('Credenciales incorrectas');
+Notify.warning('Sesión próxima a expirar');
+Notify.info('Revisa tu bandeja de correo');
+```
+
+**Por qué `alert()` es un problema de seguridad:**
+1. `alert()` puede ser abusado para **phishing**: una XSS que inyecta `alert("Tu sesión expiró. Ingresa tu contraseña:")` parece un mensaje legítimo del sistema.
+2. Bloquea el hilo principal — permite a un atacante hacer DoS en el navegador del usuario.
+3. No tiene control de estilo — el usuario no puede distinguir un alert legítimo del sistema de uno malicioso.
+
+**Características de seguridad del componente:**
+- No interpola HTML sin sanitizar (usa `textContent` / `innerHTML` con string literals)
+- Atributos ARIA correctos (`role="alert"` para errores, `role="status"` para info)
+- Auto-dismiss con barra de progreso visual (el usuario sabe cuánto tiempo tiene)
+
+---
+
+### sessionStorage en lugar de localStorage
+
+```js
+// ANTES (login.js y dashboard.js)
+localStorage.setItem('token', data.token);
+const token = localStorage.getItem('token');
+
+// DESPUÉS
+sessionStorage.setItem('token', data.token);
+const token = sessionStorage.getItem('token');
+```
+
+**Por qué:** `localStorage` persiste entre sesiones y pestañas — si el usuario cierra el navegador y lo reabre, el token sigue ahí. `sessionStorage` se borra automáticamente al cerrar la pestaña. En ambos casos el token es vulnerable a XSS, pero `sessionStorage` limita la ventana de exposición.
+
+> **Nota para producción:** La solución ideal es `httpOnly cookies` gestionadas desde el servidor, que son inaccesibles para JavaScript. Esto requiere un cambio en la arquitectura del login.
+
+---
+
+### Content-Security-Policy en HTML
+
+Todas las páginas incluyen una CSP como meta tag:
+
+```html
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self';
+               img-src 'self' data:; connect-src 'self' http://localhost:3000">
+```
+
+**Por qué:** Limita qué recursos puede cargar la página. Si hay XSS, el navegador bloquea la carga de scripts externos, prevención de data exfiltration y frames externos.
+
+---
+
+### Headers de autenticación en rutas admin del dashboard
+
+```js
+// ANTES — rutas admin llamadas sin token
+const res = await fetch(`${API_URL}/users`);
+
+// DESPUÉS — token en header Authorization
+const res = await fetch(`${API_URL}/users`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+});
+```
+
+**Por qué:** Las rutas `/api/users` y `/api/update-role` ahora requieren `verifyToken + isAdmin`. Sin el header, el servidor responde 403. Este fix era necesario para que el dashboard del admin siga funcionando tras aplicar el hardening de rutas.
+
+---
+
+## Fixes de despliegue
+
+### Fix 1: JWT_SECRET verificado antes de arrancar
+
+```js
+// ANTES — check DENTRO de app.listen (el servidor ya estaba escuchando)
+app.listen(PORT, () => {
+    if (!process.env.JWT_SECRET) { process.exit(1); }  // demasiado tarde
+});
+
+// DESPUÉS — check ANTES de app.listen
+if (!process.env.JWT_SECRET) {
+    console.error('FATAL: JWT_SECRET no está definido');
+    process.exit(1);  // nunca abre el puerto
+}
+app.listen(PORT, () => { ... });
+```
+
+**Por qué importa:** Si el servidor arrancaba sin `JWT_SECRET`, podía aceptar conexiones durante un instante antes de morir. En ese instante, podría emitir tokens con `undefined` como secreto o con el fallback eliminado — lo que causaría un crash en producción difícil de diagnosticar.
+
+---
+
+### Fix 2: dotenv para desarrollo local
+
+```js
+// Carga .env en desarrollo local; en Docker las vars vienen de docker-compose
+require('dotenv').config();
+```
+
+**Por qué:** Sin `dotenv`, las variables de entorno en `process.env.*` eran siempre `undefined` al correr `npm run dev` localmente. El servidor fallaba inmediatamente al no encontrar `JWT_SECRET` y `DB_PASSWORD`. La solución es `dotenv` que carga `.env` en desarrollo y es un no-op en Docker (donde no hay `.env`).
+
+---
+
+### Fix 3: GRANT CONNECT con nombre de BD dinámico
+
+```sql
+-- ANTES en database.sql (hardcodeado)
+GRANT CONNECT ON DATABASE registro_usuarios TO app_user;
+
+-- DESPUÉS en migrate.sh (dinámico)
+GRANT CONNECT ON DATABASE "$PGDATABASE" TO app_user;
+```
+
+**Por qué:** Si `DB_NAME` se cambia en `.env` (ej. `registro_dev`, `registro_prod`), el GRANT hardcodeado en `database.sql` fallaba porque intentaba otorgar acceso a una BD llamada `registro_usuarios` que podría no existir. Al moverlo a `migrate.sh`, usa `$PGDATABASE` que viene de las variables de entorno.
 
 ---
 
