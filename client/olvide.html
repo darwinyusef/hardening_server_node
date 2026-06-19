@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' http://localhost:3000">
+  <title>Recuperar cuenta — CEFIT</title>
+  <link rel="stylesheet" href="/client/assets/css/style.css">
+</head>
+<body>
+
+  <div class="contenedor">
+    <div class="marca">
+      <span class="marca-nombre">CEFIT</span>
+      <span class="marca-sub">Recuperación de cuenta</span>
+    </div>
+
+    <h1>¿Olvidaste tu contraseña?</h1>
+    <p>Escribe tu correo y te enviaremos un enlace para restablecerla.</p>
+
+    <form id="formOlvide" novalidate>
+      <label for="email">Correo electrónico</label>
+      <input type="email" id="email" name="email"
+             placeholder="correo@ejemplo.com"
+             autocomplete="email" required>
+
+      <button type="submit" id="btnOlvide">Enviar enlace</button>
+    </form>
+
+    <div id="mensaje" class="mensaje" role="alert"></div>
+
+    <p class="enlace">
+      <a href="/client/index.html" rel="noopener">← Volver al inicio de sesión</a>
+    </p>
+  </div>
+
+  <script src="/client/assets/js/constantes.js"></script>
+  <script src="/client/assets/js/notifications.js"></script>
+  <script src="/client/assets/js/olvide.js"></script>
+
+</body>
+</html>

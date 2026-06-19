@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' http://localhost:3000">
+  <title>Panel — CEFIT</title>
+  <link rel="stylesheet" href="/client/assets/css/style.css">
+</head>
+<body>
+
+  <div class="contenedor" style="max-width:660px">
+    <div class="marca">
+      <span class="marca-nombre">CEFIT</span>
+      <span class="marca-sub">Panel de usuario</span>
+    </div>
+
+    <h1 id="bienvenida">Cargando...</h1>
+    <div id="rol-texto"></div>
+    <hr>
+
+    <div id="contenido-privado"></div>
+
+    <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+  </div>
+
+  <script src="/client/assets/js/constantes.js"></script>
+  <script src="/client/assets/js/notifications.js"></script>
+  <script src="/client/assets/js/dashboard.js"></script>
+
+</body>
+</html>

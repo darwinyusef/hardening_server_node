@@ -1,0 +1,39 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA256
+
+# ============================================================
+# Security Policy — CEFIT Módulo Login
+# Siguiendo el estándar RFC 9116
+# ============================================================
+
+# Para reportar vulnerabilidades de seguridad en este sistema,
+# contacta al equipo de seguridad:
+Contact: mailto:seguridad@cefit.com
+
+# Este archivo es válido hasta:
+Expires: 2027-06-19T00:00:00.000Z
+
+# Idiomas preferidos para los reportes:
+Preferred-Languages: es, en
+
+# URL canónica de este archivo:
+Canonical: https://cefit.com/.well-known/security.txt
+
+# Política de divulgación:
+# Seguimos divulgación responsable coordinada (Coordinated Vulnerability Disclosure).
+# Por favor no divulgues públicamente antes de que el equipo haya tenido
+# 90 días para investigar y mitigar el problema.
+Policy: https://cefit.com/security-policy
+
+# Reconocimientos a investigadores:
+Acknowledgments: https://cefit.com/hall-of-fame
+
+# Alcance del programa:
+# - Autenticación y autorización (login, registro, recuperación)
+# - API REST del servidor Node.js
+# - Configuración de Docker y base de datos PostgreSQL
+# Fuera del alcance: ataques de ingeniería social, DoS volumétrico
+
+-----BEGIN PGP SIGNATURE-----
+# Firma PGP pendiente de configurar con clave pública del equipo
+-----END PGP SIGNATURE-----

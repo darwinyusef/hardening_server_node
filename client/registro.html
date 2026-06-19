@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' http://localhost:3000">
+  <title>Crear cuenta — CEFIT</title>
+  <link rel="stylesheet" href="/client/assets/css/style.css">
+</head>
+<body>
+
+  <div class="contenedor" style="max-width:540px">
+    <div class="marca">
+      <span class="marca-nombre">CEFIT</span>
+      <span class="marca-sub">Nueva cuenta</span>
+    </div>
+
+    <h1>Regístrate</h1>
+    <p>Completa los datos para crear tu cuenta.</p>
+
+    <form id="formRegistro" novalidate>
+
+      <label for="nombre">Nombre *</label>
+      <input type="text" id="nombre" name="nombre"
+             placeholder="Tu nombre" autocomplete="given-name" required>
+
+      <label for="lastname">Apellido *</label>
+      <input type="text" id="lastname" name="lastname"
+             placeholder="Tu apellido" autocomplete="family-name" required>
+
+      <label for="email">Correo electrónico *</label>
+      <input type="email" id="email" name="email"
+             placeholder="ejemplo@correo.com" autocomplete="email" required>
+
+      <label for="password">Contraseña * <span class="fuerza-texto" id="fuerzaTxt"></span></label>
+      <div class="input-wrapper">
+        <input type="password" id="password" name="password"
+               placeholder="Mínimo 8 caracteres"
+               autocomplete="new-password" required>
+        <button type="button" class="toggle-pass" aria-label="Mostrar contraseña"
+                onclick="togglePass('password', this)">👁</button>
+      </div>
+      <div class="fuerza-wrap"><div class="fuerza-fill" id="fuerzaBar"></div></div>
+
+      <label for="document">Número de documento</label>
+      <input type="text" id="document" name="document"
+             placeholder="Número de documento" autocomplete="off">
+
+      <label for="type_document">Tipo de documento</label>
+      <select id="type_document" name="type_document">
+        <option value="CC">Cédula de Ciudadanía (CC)</option>
+        <option value="TI">Tarjeta de Identidad (TI)</option>
+        <option value="PS">Pasaporte (PS)</option>
+        <option value="PPT">Permiso de Protección Temporal (PPT)</option>
+        <option value="DNI">DNI</option>
+      </select>
+
+      <label for="phone">Teléfono</label>
+      <input type="tel" id="phone" name="phone"
+             placeholder="Ej: 3001234567" autocomplete="tel">
+
+      <label for="address">Dirección</label>
+      <input type="text" id="address" name="address"
+             placeholder="Calle, Carrera, Ciudad" autocomplete="street-address">
+
+      <label for="age">Edad</label>
+      <input type="number" id="age" name="age"
+             placeholder="Tu edad" min="1" max="120">
+
+      <label for="departamento">Departamento</label>
+      <input type="text" id="departamento" name="departamento"
+             placeholder="Estado o Departamento" autocomplete="address-level1">
+
+      <label for="ciudad">Ciudad</label>
+      <input type="text" id="ciudad" name="ciudad"
+             placeholder="Ciudad de residencia" autocomplete="address-level2">
+
+      <label for="sexo">Sexo biológico</label>
+      <select id="sexo" name="sexo">
+        <option value="">Selecciona...</option>
+        <option value="M">Masculino</option>
+        <option value="F">Femenino</option>
+      </select>
+
+      <label for="born">Fecha de nacimiento</label>
+      <input type="date" id="born" name="born" autocomplete="bday">
+
+      <button type="submit" id="btnRegistro">Crear cuenta</button>
+
+    </form>
+
+    <div id="mensaje" class="mensaje" role="alert"></div>
+
+    <p class="enlace">
+      ¿Ya tienes cuenta? <a href="/client/index.html" rel="noopener">Inicia sesión</a>
+    </p>
+  </div>
+
+  <script src="/client/assets/js/constantes.js"></script>
+  <script src="/client/assets/js/notifications.js"></script>
+  <script src="/client/assets/js/registro.js"></script>
+
+</body>
+</html>

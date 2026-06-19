@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+
+    <h1>Hola mi nombre es: <span id="type"></span> y mi edad es <span id="id"></span></h1>
+    <script>
+
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('id');
+
+        fetch(`http://localhost:3000/${id}`, { // <-- ID aquíF
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+
+        })
+            .then(res => res.json())
+            .then((res) => {
+                console.log(res)
+                document.getElementById("type").textContent = res.data.nombre
+                document.getElementById("id").innerText = res.data.edad
+            })
+            .catch((e) => {
+                console.log(e)
+            })
+    </script>
+
+</body>
+
+</html>

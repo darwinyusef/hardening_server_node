@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <script>
+        fetch("http://localhost:3000/")
+            .then(res => res.json())
+            .then((res) => {
+                console.log(res)
+            })
+            .catch((e) => {
+                console.log(e)
+            })
+
+
+
+        async function obtenerDatos() {
+            try {
+                const res = await fetch("http://localhost:3000/producto");
+                const data = await res.json();
+                console.log(data);
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        obtenerDatos();
+    </script>
+</body>
+
+</html>

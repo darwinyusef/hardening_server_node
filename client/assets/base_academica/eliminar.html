@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <script>
+
+        async function eliminarUsuario() {
+            try {
+                const res = await fetch("http://localhost:3000/123", {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await res.json();
+                console.log(data);
+
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        eliminarUsuario();
+
+        fetch("http://localhost:3000/123",
+            {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+
+            }
+        )
+            .then(res => res.json())
+            .then((res) => {
+                console.log(res)
+            })
+            .catch((e) => {
+                console.log(e)
+            })
+    </script>
+</body>
+
+</html>

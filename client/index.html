@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' http://localhost:3000">
+  <title>Iniciar sesión — CEFIT</title>
+  <link rel="stylesheet" href="/client/assets/css/style.css">
+</head>
+<body>
+
+  <div class="contenedor">
+    <div class="marca">
+      <span class="marca-nombre">CEFIT</span>
+      <span class="marca-sub">Plataforma educativa</span>
+    </div>
+
+    <h1>Iniciar sesión</h1>
+    <p>Ingresa tu correo y contraseña para continuar.</p>
+
+    <form id="loginForm" novalidate>
+      <label for="email">Correo electrónico</label>
+      <input type="email" id="email" name="email"
+             placeholder="correo@ejemplo.com"
+             autocomplete="email" required>
+
+      <label for="password">Contraseña</label>
+      <div class="input-wrapper">
+        <input type="password" id="password" name="password"
+               placeholder="Tu contraseña"
+               autocomplete="current-password" required>
+        <button type="button" class="toggle-pass" aria-label="Mostrar contraseña"
+                onclick="togglePass('password', this)">👁</button>
+      </div>
+
+      <div class="link-derecha">
+        <a href="/client/olvide.html" rel="noopener">¿Olvidaste tu contraseña?</a>
+      </div>
+
+      <button type="submit" id="btnLogin">Entrar</button>
+    </form>
+
+    <div id="mensaje" class="mensaje" role="alert"></div>
+
+    <div id="admin-section"></div>
+
+    <p class="pie-pagina">
+      ¿No tienes cuenta? <a href="/client/registro.html" rel="noopener">Regístrate aquí</a>
+    </p>
+  </div>
+
+  <script src="/client/assets/js/constantes.js"></script>
+  <script src="/client/assets/js/notifications.js"></script>
+  <script src="/client/assets/js/login.js"></script>
+
+</body>
+</html>

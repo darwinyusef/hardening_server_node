@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+
+    <form id="formulario">
+        <div class="name">
+            <label for="into">Name</label>
+            <input type="text" id="into">
+        </div>
+        <br>
+        <div class="edad">
+            <label for="age">Age</label>
+            <input type="number" max="130" min="1" id="age">
+        </div>
+        <br>
+        <div><button type="button">Submit</button></div>
+    </form>
+
+    <script>
+        document.querySelector("button").addEventListener("click", () => {
+            enviarDatos();
+
+        });
+
+
+        async function enviarDatos() {
+
+
+            const datos = {
+                nombre: document.getElementById("into").value,
+                edad: parseInt(document.getElementById("age").value)
+            }
+            try {
+                const res = await fetch("http://localhost:3000/", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(datos)
+                });
+
+                if (!res.ok) {
+                    throw new Error(`Error HTTP: ${res.status}`);
+                }
+
+                const data = await res.json();
+                console.log(data);
+
+            } catch (e) {
+                console.log("Error:", e.message);
+            }
+        }
+
+
+    </script>
+</body>
+
+</html>
