@@ -28,4 +28,11 @@ const isAdmin = (req, res, next) => {
     next();
 };
 
-module.exports = { verifyToken, isAdmin };
+const isAdminOrVendedor = (req, res, next) => {
+    if (!req.user || !['admin', 'vendedor'].includes(req.user.rol)) {
+        return res.status(403).json({ message: "Acceso denegado: Se requiere rol administrador o vendedor" });
+    }
+    next();
+};
+
+module.exports = { verifyToken, isAdmin, isAdminOrVendedor };

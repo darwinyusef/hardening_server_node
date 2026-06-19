@@ -160,6 +160,64 @@ INSERT INTO users (
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
+-- TABLA PRODUCTS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS products (
+    id          VARCHAR(50)     PRIMARY KEY,
+    nombre      VARCHAR(200)    NOT NULL,
+    descripcion TEXT,
+    precio      DECIMAL(10,2)   NOT NULL CHECK (precio >= 0),
+    stock       INT             DEFAULT 0 CHECK (stock >= 0),
+    categoria   VARCHAR(100),
+    activo      BOOLEAN         DEFAULT true,
+    created_by  VARCHAR(50)     REFERENCES users(id) ON DELETE SET NULL,
+    created_at  TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP       DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_products_activo    ON products(activo);
+CREATE INDEX IF NOT EXISTS idx_products_categoria ON products(categoria);
+CREATE INDEX IF NOT EXISTS idx_products_nombre    ON products(nombre);
+CREATE INDEX IF NOT EXISTS idx_products_precio    ON products(precio);
+
+-- ============================================================
+-- DATOS INICIALES: PRODUCTOS DE PRUEBA
+-- ============================================================
+INSERT INTO products (id, nombre, descripcion, precio, stock, categoria, activo, created_by) VALUES
+    ('prod-001', 'Curso Ciberseguridad Básica',
+     'Introducción a conceptos de seguridad informática, amenazas y controles.',
+     150000, 100, 'Cursos', true, 'usr-admin-cefit-001'),
+
+    ('prod-002', 'Curso Pentesting Avanzado',
+     'Técnicas de ethical hacking: reconocimiento, explotación y post-explotación.',
+     350000, 50, 'Cursos', true, 'usr-admin-cefit-001'),
+
+    ('prod-003', 'Taller Docker y Contenedores',
+     'Hardening de imágenes, docker-compose seguro y redes internas.',
+     120000, 30, 'Talleres', true, 'usr-vendedor-cefit-001'),
+
+    ('prod-004', 'Taller OWASP Top 10',
+     'Análisis práctico de las 10 vulnerabilidades web más críticas.',
+     95000, 40, 'Talleres', true, 'usr-vendedor-cefit-001'),
+
+    ('prod-005', 'Libro: Hardening de Servidores',
+     'Guía completa para asegurar entornos Linux y Windows en producción.',
+     80000, 200, 'Materiales', true, 'usr-admin-cefit-001'),
+
+    ('prod-006', 'Certificación CEFIT Security+',
+     'Examen oficial de certificación en ciberseguridad nivel intermedio.',
+     500000, 20, 'Certificaciones', true, 'usr-admin-cefit-001'),
+
+    ('prod-007', 'Kit de Herramientas Forenses',
+     'Licencias de herramientas para análisis forense digital y respuesta a incidentes.',
+     280000, 15, 'Materiales', true, 'usr-admin-cefit-001'),
+
+    ('prod-008', 'Taller Seguridad en APIs REST',
+     'JWT, OAuth2, rate limiting, validación de inputs y pruebas de seguridad.',
+     110000, 35, 'Talleres', true, 'usr-vendedor-cefit-001')
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================
 -- PERMISOS DE BD RESTRICTIVOS (principio de mínimo privilegio)
 -- ─────────────────────────────────────────────────────────────
 -- NOTA: El GRANT CONNECT ON DATABASE y la creación del rol
@@ -176,6 +234,7 @@ GRANT USAGE ON SCHEMA public TO app_user;
 GRANT SELECT, INSERT, UPDATE ON TABLE users       TO app_user;
 GRANT SELECT, INSERT, DELETE ON TABLE change_pass TO app_user;
 GRANT SELECT                 ON TABLE permissions  TO app_user;
+GRANT SELECT, INSERT, UPDATE ON TABLE products     TO app_user;
 
 -- Acceso a los tipos ENUM
 GRANT USAGE ON TYPE document_type_enum TO app_user;

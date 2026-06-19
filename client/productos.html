@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' http://localhost:3000">
+  <title>Productos — CEFIT</title>
+  <link rel="stylesheet" href="/client/assets/css/style.css">
+</head>
+<body class="productos-body">
+
+  <!-- ── Barra superior ─────────────────────────────────────── -->
+  <nav class="topbar">
+    <span class="topbar-brand">CEFIT</span>
+    <span class="topbar-sep">›</span>
+    <span class="topbar-title">Catálogo de Productos</span>
+    <a href="/client/dashboard.html" class="topbar-back">← Dashboard</a>
+  </nav>
+
+  <!-- ── Layout de dos columnas ─────────────────────────────── -->
+  <div class="productos-layout">
+
+    <!-- COLUMNA IZQUIERDA: filtros + query visualizer -->
+    <aside class="filtros-panel">
+      <h2>🔍 Filtros</h2>
+
+      <form id="filtrosForm">
+        <label for="f-busqueda">Buscar</label>
+        <input type="text" id="f-busqueda" name="busqueda"
+               placeholder="Nombre o descripción..." autocomplete="off">
+
+        <label for="f-categoria">Categoría</label>
+        <select id="f-categoria" name="categoria">
+          <option value="">Todas</option>
+        </select>
+
+        <label for="f-precioMin">Precio mínimo</label>
+        <input type="number" id="f-precioMin" name="precioMin"
+               placeholder="0" min="0">
+
+        <label for="f-precioMax">Precio máximo</label>
+        <input type="number" id="f-precioMax" name="precioMax"
+               placeholder="Sin límite" min="0">
+
+        <div id="filtro-inactivos" style="display:none;margin-top:14px">
+          <label style="flex-direction:row;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="f-inactivos" name="incluirInactivos"
+                   style="width:auto;margin:0">
+            Incluir inactivos
+          </label>
+        </div>
+
+        <button type="submit" style="margin-top:18px">Buscar</button>
+      </form>
+
+      <!-- ── Visualizador de query SQL ──────────────────────── -->
+      <div class="query-box">
+        <div class="query-box-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5">
+            <path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+          </svg>
+          Query generada
+        </div>
+        <pre class="query-pre" id="queryPreview"></pre>
+      </div>
+    </aside>
+
+    <!-- COLUMNA DERECHA: tabla de productos -->
+    <main class="productos-panel">
+      <div class="panel-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <h2>Productos</h2>
+          <span class="total-chip" id="totalChip">— resultados</span>
+        </div>
+        <button class="btn-crear hidden" id="btnCrear" onclick="abrirModal()">
+          + Nuevo producto
+        </button>
+      </div>
+
+      <div id="tablaWrapper">
+        <table id="tablaProductos" style="display:none">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Categoría</th>
+              <th>Precio</th>
+              <th>Stock</th>
+              <th>Estado</th>
+              <th id="col-acciones" style="display:none">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyProductos"></tbody>
+        </table>
+        <div class="empty-state" id="emptyState" style="display:none">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.5">
+            <path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/>
+            <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>
+          </svg>
+          <p>No se encontraron productos</p>
+        </div>
+        <p id="loadingMsg" style="color:var(--muted);text-align:center;padding:30px 0">
+          Cargando productos...
+        </p>
+      </div>
+    </main>
+  </div>
+
+  <!-- ── Modal crear / editar ───────────────────────────────── -->
+  <div class="modal-overlay hidden" id="modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modalTitulo">Nuevo producto</h3>
+        <button class="modal-close" onclick="cerrarModal()" aria-label="Cerrar">×</button>
+      </div>
+
+      <form id="formProducto" novalidate>
+        <input type="hidden" id="m-id">
+
+        <label for="m-nombre">Nombre *</label>
+        <input type="text" id="m-nombre" placeholder="Nombre del producto" required>
+
+        <label for="m-descripcion">Descripción</label>
+        <input type="text" id="m-descripcion" placeholder="Descripción breve (opcional)">
+
+        <label for="m-precio">Precio * (COP)</label>
+        <input type="number" id="m-precio" placeholder="0" min="0" step="1000" required>
+
+        <label for="m-stock">Stock</label>
+        <input type="number" id="m-stock" placeholder="0" min="0">
+
+        <label for="m-categoria">Categoría</label>
+        <input type="text" id="m-categoria" placeholder="Ej: Cursos, Talleres, Materiales"
+               list="categorias-list">
+        <datalist id="categorias-list"></datalist>
+
+        <div id="m-activo-wrap" style="display:none;margin-top:14px">
+          <label style="flex-direction:row;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="m-activo" style="width:auto;margin:0" checked>
+            Producto activo
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-cancelar" onclick="cerrarModal()">Cancelar</button>
+          <button type="submit" class="btn-guardar" id="btnGuardar">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/client/assets/js/constantes.js"></script>
+  <script src="/client/assets/js/notifications.js"></script>
+  <script src="/client/assets/js/productos.js"></script>
+
+</body>
+</html>

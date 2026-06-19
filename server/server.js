@@ -30,7 +30,7 @@ app.use(cors({
         if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
         callback(new Error('Origen no permitido por CORS'));
     },
-    methods: ['GET', 'POST', 'PUT'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
@@ -46,8 +46,9 @@ app.use('/.well-known', express.static(path.join(__dirname, '../.well-known'), {
 }));
 
 // ── Rutas API ─────────────────────────────────────────────────
-app.use('/api', require('./routes/authRoutes'));
-app.use('/api', require('./routes/recoveryRoutes'));
+app.use('/api',          require('./routes/authRoutes'));
+app.use('/api',          require('./routes/recoveryRoutes'));
+app.use('/api/productos', require('./routes/productRoutes'));
 
 // ── Health check (usado por Docker y load balancers) ──────────
 app.get('/api/health', (req, res) => {
