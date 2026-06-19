@@ -286,6 +286,36 @@ select.rol-select {
 }
 .btn-logout:hover { background: #1e293b; }
 
+/* ── Utilidades ───────────────────────────────────────────────────────────── */
+.oculto { display: none; }
+
+/* Variantes de ancho del contenedor */
+.contenedor--lg { max-width: 660px; }
+.contenedor--md { max-width: 540px; }
+
+/* Dashboard — enlace catálogo */
+.catalogo-link-wrap { margin: 24px 0 8px; }
+.btn-catalogo {
+  display: inline-block;
+  padding: 10px 20px;
+  background: var(--brand);
+  color: #fff;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: .9rem;
+  transition: background var(--transition);
+}
+.btn-catalogo:hover { background: var(--brand-dark); text-decoration: none; }
+
+/* Productos — reemplazos de inline styles */
+.filtro-extra    { margin-top: 14px; }
+.label-inline    { flex-direction: row; align-items: center; gap: 8px; cursor: pointer; }
+.input-auto      { width: auto; margin: 0; }
+.btn-buscar      { margin-top: 18px; }
+.panel-title-row { display: flex; align-items: center; gap: 10px; }
+.loading-msg     { color: var(--muted); text-align: center; padding: 30px 0; }
+
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .contenedor { padding: 28px 20px; }

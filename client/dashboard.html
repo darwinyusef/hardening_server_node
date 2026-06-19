@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' http://localhost:3000">
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'">
   <title>Panel — CEFIT</title>
-  <link rel="stylesheet" href="/client/assets/css/style.css">
+  <link rel="stylesheet" href="/assets/css/style.css">
 </head>
 <body>
 
-  <div class="contenedor" style="max-width:660px">
+  <div class="contenedor contenedor--lg">
     <div class="marca">
       <span class="marca-nombre">CEFIT</span>
       <span class="marca-sub">Panel de usuario</span>
@@ -22,9 +22,9 @@
 
     <div id="contenido-privado"></div>
 
-    <div style="margin:24px 0 8px">
-      <a href="/client/productos.html"
-         style="display:inline-block;padding:10px 20px;background:var(--brand);color:#fff;border-radius:8px;font-weight:600;text-decoration:none;font-size:.9rem">
+    <div class="catalogo-link-wrap">
+      <a href="/productos.html"
+         class="btn-catalogo">
         Catálogo de Productos →
       </a>
     </div>
@@ -32,9 +32,9 @@
     <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
   </div>
 
-  <script src="/client/assets/js/constantes.js"></script>
-  <script src="/client/assets/js/notifications.js"></script>
-  <script src="/client/assets/js/dashboard.js"></script>
+  <script src="/assets/js/constantes.js"></script>
+  <script src="/assets/js/notifications.js"></script>
+  <script src="/assets/js/dashboard.js"></script>
 
 </body>
 </html>

@@ -6,6 +6,7 @@ const cors    = require('cors');
 const helmet  = require('helmet');
 const path    = require('path');
 const { globalLimiter } = require('./middleware/rateLimiter');
+const { metricsMiddleware } = require('./middleware/metrics');
 
 // ── Validación temprana de variables obligatorias ─────────────
 // Falla ANTES de arrancar, no después (evita servidor sin secretos)
@@ -19,6 +20,13 @@ if (!process.env.DB_PASSWORD) {
 }
 
 const app = express();
+
+// Confiar en el primer proxy (Caddy) para obtener la IP real del cliente
+app.set('trust proxy', 1);
+
+// ── Métricas Prometheus (antes del rate limiter para no consumir cuota) ───────
+app.use(metricsMiddleware);
+app.use('/metrics', require('./routes/metricsRoute'));
 
 // ── Cabeceras de seguridad HTTP ────────────────────────────────
 app.use(helmet());

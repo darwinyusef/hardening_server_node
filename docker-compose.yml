@@ -1,8 +1,9 @@
 version: '3.9'
 
 # =============================================================
-# CEFIT — Módulo Login
+# CEFIT — Módulo Login + Monitoreo
 # Servicios: app (Node.js) + db (PostgreSQL 16)
+#            prometheus + grafana
 #
 # Primer arranque — la BD se inicializa automáticamente:
 #   1. scripts/migrate.sh  → crea el rol app_user
@@ -12,6 +13,8 @@ version: '3.9'
 #   cp .env.example .env   # completar todos los valores
 #   docker compose up -d
 #   docker compose logs -f
+#
+# Grafana: http://localhost:3001  (admin / ver GRAFANA_PASSWORD en .env)
 # =============================================================
 
 services:
@@ -58,6 +61,34 @@ services:
           memory: 256m
           cpus: '0.5'
 
+  # ── Caddy (reverse proxy + TLS) ──────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    container_name: cefit_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "3001:3001"
+    volumes:
+      - ${CADDYFILE:-./Caddyfile.local}:/etc/caddy/Caddyfile:ro
+      - ./client:/srv/client:ro
+      - ./.well-known:/srv/.well-known:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - cefit_net
+    depends_on:
+      app:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+          cpus: '0.25'
+
   # ── Servidor Node.js ──────────────────────────────────────────
   app:
     build: .
@@ -89,9 +120,7 @@ services:
       ALLOWED_ORIGINS:          ${ALLOWED_ORIGINS:-http://localhost:5500}
       # Recuperación de contraseña
       RECOVERY_TOKEN_MINUTES:   ${RECOVERY_TOKEN_MINUTES:-60}
-    # Puerto en loopback — en producción poner nginx como reverse proxy
-    ports:
-      - "127.0.0.1:3000:3000"
+    # Sin binding al host — solo accesible a través de Caddy (cefit_net)
     networks:
       - cefit_net
     security_opt:
@@ -112,9 +141,70 @@ services:
           memory: 256m
           cpus: '0.5'
 
+  # ── Prometheus ────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v3.0.1
+    container_name: cefit_prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    networks:
+      - cefit_net
+    depends_on:
+      app:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: '0.5'
+
+  # ── Grafana ───────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: cefit_grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER:     admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP:     "false"
+      GF_SERVER_ROOT_URL:         https://grafana.iapixelcode.com
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    # Sin binding al host — solo accesible a través de Caddy
+    networks:
+      - cefit_net
+    depends_on:
+      - prometheus
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: '0.5'
+
 # ── Volúmenes persistentes ────────────────────────────────────
 volumes:
   postgres_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
     driver: local
 
 # ── Red interna (app ↔ db, sin acceso cruzado a otros proyectos)

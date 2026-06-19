@@ -18,7 +18,7 @@
 set -euo pipefail
 
 # ── Variables de conexión ────────────────────────────────────
-PGHOST="${PGHOST:-localhost}"
+PGHOST="${PGHOST:-}"  # vacío = Unix socket (Docker initdb.d); poner hostname para remoto
 PGPORT="${PGPORT:-5432}"
 PGUSER="${PGUSER:-${POSTGRES_USER:-postgres}}"
 export PGPASSWORD="${PGPASSWORD:-${POSTGRES_PASSWORD:-}}"

@@ -1,0 +1,46 @@
+{
+    email admin@iapixelcode.com
+    log {
+        output stdout
+        level WARN
+    }
+
+    # Quitar esto en producción real (Let's Encrypt)
+    # En local usa CA propia de Caddy → correr: docker exec cefit_caddy caddy trust
+    local_certs
+}
+
+# Redirect www → apex
+www.iapixelcode.com {
+    redir https://iapixelcode.com{uri} permanent
+}
+
+# Sitio principal: frontend + API
+iapixelcode.com {
+    tls internal
+    header -Server
+
+    # API → Node.js app
+    handle /api/* {
+        reverse_proxy app:3000
+    }
+
+    # security.txt (RFC 9116) y otros .well-known
+    handle /.well-known/* {
+        root * /srv
+        file_server
+    }
+
+    # Frontend estático
+    handle {
+        root * /srv/client
+        file_server
+    }
+}
+
+# Grafana
+grafana.iapixelcode.com {
+    tls internal
+    header -Server
+    reverse_proxy grafana:3000
+}

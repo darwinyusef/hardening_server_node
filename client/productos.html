@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' http://localhost:3000">
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'">
   <title>Productos — CEFIT</title>
-  <link rel="stylesheet" href="/client/assets/css/style.css">
+  <link rel="stylesheet" href="/assets/css/style.css">
 </head>
 <body class="productos-body">
 
@@ -15,7 +15,7 @@
     <span class="topbar-brand">CEFIT</span>
     <span class="topbar-sep">›</span>
     <span class="topbar-title">Catálogo de Productos</span>
-    <a href="/client/dashboard.html" class="topbar-back">← Dashboard</a>
+    <a href="/dashboard.html" class="topbar-back">← Dashboard</a>
   </nav>
 
   <!-- ── Layout de dos columnas ─────────────────────────────── -->
@@ -43,15 +43,15 @@
         <input type="number" id="f-precioMax" name="precioMax"
                placeholder="Sin límite" min="0">
 
-        <div id="filtro-inactivos" style="display:none;margin-top:14px">
-          <label style="flex-direction:row;align-items:center;gap:8px;cursor:pointer">
+        <div id="filtro-inactivos" class="oculto filtro-extra">
+          <label class="label-inline">
             <input type="checkbox" id="f-inactivos" name="incluirInactivos"
-                   style="width:auto;margin:0">
+                   class="input-auto">
             Incluir inactivos
           </label>
         </div>
 
-        <button type="submit" style="margin-top:18px">Buscar</button>
+        <button type="submit" class="btn-buscar">Buscar</button>
       </form>
 
       <!-- ── Visualizador de query SQL ──────────────────────── -->
@@ -70,7 +70,7 @@
     <!-- COLUMNA DERECHA: tabla de productos -->
     <main class="productos-panel">
       <div class="panel-header">
-        <div style="display:flex;align-items:center;gap:10px">
+        <div class="panel-title-row">
           <h2>Productos</h2>
           <span class="total-chip" id="totalChip">— resultados</span>
         </div>
@@ -80,7 +80,7 @@
       </div>
 
       <div id="tablaWrapper">
-        <table id="tablaProductos" style="display:none">
+        <table id="tablaProductos" class="oculto">
           <thead>
             <tr>
               <th>Nombre</th>
@@ -88,12 +88,12 @@
               <th>Precio</th>
               <th>Stock</th>
               <th>Estado</th>
-              <th id="col-acciones" style="display:none">Acciones</th>
+              <th id="col-acciones" class="oculto">Acciones</th>
             </tr>
           </thead>
           <tbody id="tbodyProductos"></tbody>
         </table>
-        <div class="empty-state" id="emptyState" style="display:none">
+        <div class="empty-state oculto" id="emptyState">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="1.5">
             <path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/>
@@ -101,7 +101,7 @@
           </svg>
           <p>No se encontraron productos</p>
         </div>
-        <p id="loadingMsg" style="color:var(--muted);text-align:center;padding:30px 0">
+        <p id="loadingMsg" class="loading-msg">
           Cargando productos...
         </p>
       </div>
@@ -136,9 +136,9 @@
                list="categorias-list">
         <datalist id="categorias-list"></datalist>
 
-        <div id="m-activo-wrap" style="display:none;margin-top:14px">
-          <label style="flex-direction:row;align-items:center;gap:8px;cursor:pointer">
-            <input type="checkbox" id="m-activo" style="width:auto;margin:0" checked>
+        <div id="m-activo-wrap" class="oculto filtro-extra">
+          <label class="label-inline">
+            <input type="checkbox" id="m-activo" class="input-auto" checked>
             Producto activo
           </label>
         </div>
@@ -151,9 +151,9 @@
     </div>
   </div>
 
-  <script src="/client/assets/js/constantes.js"></script>
-  <script src="/client/assets/js/notifications.js"></script>
-  <script src="/client/assets/js/productos.js"></script>
+  <script src="/assets/js/constantes.js"></script>
+  <script src="/assets/js/notifications.js"></script>
+  <script src="/assets/js/productos.js"></script>
 
 </body>
 </html>

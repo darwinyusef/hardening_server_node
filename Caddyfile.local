@@ -1,0 +1,33 @@
+{
+    local_certs
+    log {
+        output stdout
+        level WARN
+    }
+}
+
+# App + frontend en localhost (puerto 443)
+localhost {
+    tls internal
+    header -Server
+
+    handle /api/* {
+        reverse_proxy app:3000
+    }
+
+    handle /.well-known/* {
+        root * /srv
+        file_server
+    }
+
+    handle {
+        root * /srv/client
+        file_server
+    }
+}
+
+# Grafana en localhost:3001
+:3001 {
+    tls internal
+    reverse_proxy grafana:3000
+}
