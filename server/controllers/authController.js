@@ -60,7 +60,7 @@ exports.register = async (req, res) => {
             ]
         );
 
-        const verifyLink = `${process.env.APP_URL || 'http://localhost:3000'}/api/verify?id=${id}`;
+        const verifyLink = `${process.env.APP_URL || 'https://iapixelcode.com'}/api/verify?id=${id}`;
 
         await transporter.sendMail({
             from: process.env.MAIL_USER,

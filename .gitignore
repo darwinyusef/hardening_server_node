@@ -1,3 +1,10 @@
 node_modules/
+
+# Archivos de entorno con secretos reales (nunca al repositorio)
 .env
+.env.local
+.env.prod
+
+# .env.example sí se versiona (sin secretos reales)
+
 monitorize/metrics.jsonl

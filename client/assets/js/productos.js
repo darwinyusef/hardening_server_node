@@ -193,7 +193,7 @@ function filaProducto(p) {
     if (esAdmin) {
         acciones = `
           <td>
-            <div style="display:flex;gap:6px;justify-content:flex-end">
+            <div class="acciones-row">
               <button class="btn-accion btn-editar" onclick="abrirModalEditar('${esc(p.id)}')">Editar</button>
               <button class="btn-accion btn-borrar" onclick="confirmarEliminar('${esc(p.id)}','${esc(p.nombre)}')">${p.activo ? 'Desactivar' : 'Activar'}</button>
             </div>
@@ -206,7 +206,7 @@ function filaProducto(p) {
       <tr>
         <td>
           <strong>${esc(p.nombre)}</strong>
-          ${p.descripcion ? `<br><small style="color:var(--muted)">${esc(p.descripcion)}</small>` : ''}
+          ${p.descripcion ? `<br><small class="text-muted">${esc(p.descripcion)}</small>` : ''}
         </td>
         <td><span class="cat-badge ${catClass}">${esc(p.categoria || '—')}</span></td>
         <td>${fmt(p.precio)}</td>

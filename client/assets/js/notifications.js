@@ -53,8 +53,10 @@ const Notify = (() => {
                 <span class="notify-msg">${message}</span>
             </div>
             <button class="notify-close" aria-label="Cerrar notificación">&#10005;</button>
-            <div class="notify-progress" style="animation-duration:${duration}ms"></div>
+            <div class="notify-progress"></div>
         `;
+        // Asignar duración vía propiedad DOM — no viola style-src 'self'
+        toast.querySelector('.notify-progress').style.animationDuration = `${duration}ms`;
 
         toast.querySelector('.notify-close').addEventListener('click', () => dismiss(toast));
 

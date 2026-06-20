@@ -54,7 +54,7 @@ exports.enviarRecovery = async (req, res) => {
             [token, usuario.id]
         );
 
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5500';
+        const frontendUrl = process.env.FRONTEND_URL || 'https://iapixelcode.com';
         const link = `${frontendUrl}/client/nueva_password.html?token=${token}`;
 
         await transporter.sendMail({

@@ -32,7 +32,7 @@ app.use('/metrics', require('./routes/metricsRoute'));
 app.use(helmet());
 
 // ── CORS restringido a orígenes autorizados ───────────────────
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5500').split(',');
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'https://iapixelcode.com').split(',');
 app.use(cors({
     origin: (origin, callback) => {
         if (!origin || allowedOrigins.includes(origin)) return callback(null, true);

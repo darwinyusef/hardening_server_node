@@ -315,6 +315,8 @@ select.rol-select {
 .btn-buscar      { margin-top: 18px; }
 .panel-title-row { display: flex; align-items: center; gap: 10px; }
 .loading-msg     { color: var(--muted); text-align: center; padding: 30px 0; }
+.acciones-row    { display: flex; gap: 6px; justify-content: flex-end; }
+.text-muted      { color: var(--muted); }
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {

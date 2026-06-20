@@ -1,60 +1,53 @@
-version: '3.9'
-
 # =============================================================
-# CEFIT — Módulo Login + Monitoreo
-# Servicios: app (Node.js) + db (PostgreSQL 16)
-#            prometheus + grafana
+# CEFIT — App + Caddy + Prometheus + Grafana
 #
-# Primer arranque — la BD se inicializa automáticamente:
-#   1. scripts/migrate.sh  → crea el rol app_user
-#   2. database.sql        → crea tablas, índices, datos seed y GRANTs
+# Seleccionar entorno con --env-file:
+#   Local:      docker compose --env-file .env.local up -d
+#   Producción: docker compose --env-file .env.prod  up -d
 #
-# Uso:
-#   cp .env.example .env   # completar todos los valores
-#   docker compose up -d
-#   docker compose logs -f
-#
-# Grafana: http://localhost:3001  (admin / ver GRAFANA_PASSWORD en .env)
+# La BD corre en un stack separado (levantar primero):
+#   docker compose -f docker-compose.db.yml --env-file .env.local up -d db
+#   docker compose -f docker-compose.db.yml --env-file .env.local --profile init up --abort-on-container-exit db-init
 # =============================================================
 
 services:
 
-  # ── Base de datos PostgreSQL ──────────────────────────────────
-  db:
-    image: postgres:16-alpine
-    container_name: cefit_db
+  # ── Servidor Node.js ──────────────────────────────────────────
+  app:
+    build: .
+    container_name: cefit_app
     restart: unless-stopped
     environment:
-      POSTGRES_USER:     postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB:       ${DB_NAME:-registro_usuarios}
-      # Pasadas al migrate.sh para crear app_user con la clave correcta
-      DB_PASSWORD:       ${DB_PASSWORD}
-      SCHEMA_FILE:       /tmp/schema.sql
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      # ──────────────────────────────────────────────────────────
-      # INICIALIZACIÓN AUTOMÁTICA (solo en primer arranque)
-      # Docker ejecuta todo lo que esté en initdb.d/ cuando el
-      # volumen postgres_data está vacío por primera vez.
-      # ──────────────────────────────────────────────────────────
-      # Paso 1: crea el usuario app_user con mínimo privilegio
-      - ./scripts/migrate.sh:/docker-entrypoint-initdb.d/01_migrate.sh:ro
-      # Paso 2: aplica el esquema completo (tablas, índices, seed, GRANTs)
-      - ./database.sql:/tmp/schema.sql:ro
-    # Puerto solo en loopback — no exponer a la red externa
-    ports:
-      - "127.0.0.1:5432:5432"
+      NODE_ENV:                 production
+      PORT:                     3000
+      DB_USER:                  ${DB_USER:-app_user}
+      DB_HOST:                  cefit_db
+      DB_NAME:                  ${DB_NAME:-registro_usuarios}
+      DB_PASSWORD:              ${DB_PASSWORD}
+      DB_PORT:                  5432
+      DB_SSL:                   "false"
+      JWT_SECRET:               ${JWT_SECRET}
+      JWT_EXPIRES_IN:           ${JWT_EXPIRES_IN:-2h}
+      MAIL_USER:                ${MAIL_USER}
+      MAIL_PASS:                ${MAIL_PASS}
+      APP_URL:                  ${APP_URL}
+      FRONTEND_URL:             ${FRONTEND_URL}
+      ALLOWED_ORIGINS:          ${ALLOWED_ORIGINS}
+      RECOVERY_TOKEN_MINUTES:   ${RECOVERY_TOKEN_MINUTES:-60}
     networks:
+      - cefit_db_net
       - cefit_net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d ${DB_NAME:-registro_usuarios} -q"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=50m,mode=1777
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     deploy:
       resources:
         limits:
@@ -71,7 +64,7 @@ services:
       - "443:443"
       - "3001:3001"
     volumes:
-      - ${CADDYFILE:-./Caddyfile.local}:/etc/caddy/Caddyfile:ro
+      - ${CADDYFILE}:/etc/caddy/Caddyfile:ro
       - ./client:/srv/client:ro
       - ./.well-known:/srv/.well-known:ro
       - caddy_data:/data
@@ -88,58 +81,6 @@ services:
         limits:
           memory: 128m
           cpus: '0.25'
-
-  # ── Servidor Node.js ──────────────────────────────────────────
-  app:
-    build: .
-    container_name: cefit_app
-    restart: unless-stopped
-    # No arranca hasta que la BD supere el healthcheck
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      NODE_ENV:                 production
-      PORT:                     3000
-      # Conexión a la BD (usa app_user, no el superusuario postgres)
-      DB_USER:                  ${DB_USER:-app_user}
-      DB_HOST:                  db
-      DB_NAME:                  ${DB_NAME:-registro_usuarios}
-      DB_PASSWORD:              ${DB_PASSWORD}
-      DB_PORT:                  5432
-      DB_SSL:                   "false"
-      # JWT
-      JWT_SECRET:               ${JWT_SECRET}
-      JWT_EXPIRES_IN:           ${JWT_EXPIRES_IN:-2h}
-      # Correo
-      MAIL_USER:                ${MAIL_USER}
-      MAIL_PASS:                ${MAIL_PASS}
-      # URLs
-      APP_URL:                  ${APP_URL:-http://localhost:3000}
-      FRONTEND_URL:             ${FRONTEND_URL:-http://localhost:5500}
-      ALLOWED_ORIGINS:          ${ALLOWED_ORIGINS:-http://localhost:5500}
-      # Recuperación de contraseña
-      RECOVERY_TOKEN_MINUTES:   ${RECOVERY_TOKEN_MINUTES:-60}
-    # Sin binding al host — solo accesible a través de Caddy (cefit_net)
-    networks:
-      - cefit_net
-    security_opt:
-      - no-new-privileges:true
-    # Filesystem de solo lectura; /tmp disponible en RAM
-    read_only: true
-    tmpfs:
-      - /tmp:size=50m,mode=1777
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
-    deploy:
-      resources:
-        limits:
-          memory: 256m
-          cpus: '0.5'
 
   # ── Prometheus ────────────────────────────────────────────────
   prometheus:
@@ -177,11 +118,10 @@ services:
       GF_SECURITY_ADMIN_USER:     admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP:     "false"
-      GF_SERVER_ROOT_URL:         https://grafana.iapixelcode.com
+      GF_SERVER_ROOT_URL:         ${GRAFANA_URL:-https://grafana.iapixelcode.com}
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - grafana_data:/var/lib/grafana
-    # Sin binding al host — solo accesible a través de Caddy
     networks:
       - cefit_net
     depends_on:
@@ -194,10 +134,8 @@ services:
           memory: 256m
           cpus: '0.5'
 
-# ── Volúmenes persistentes ────────────────────────────────────
+# ── Volúmenes ─────────────────────────────────────────────────
 volumes:
-  postgres_data:
-    driver: local
   prometheus_data:
     driver: local
   grafana_data:
@@ -207,7 +145,10 @@ volumes:
   caddy_config:
     driver: local
 
-# ── Red interna (app ↔ db, sin acceso cruzado a otros proyectos)
+# ── Redes ─────────────────────────────────────────────────────
 networks:
+  cefit_db_net:
+    external: true       # creada por docker-compose.db.yml
+    name: cefit_db_net
   cefit_net:
     driver: bridge
