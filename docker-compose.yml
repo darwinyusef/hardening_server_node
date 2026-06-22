@@ -62,7 +62,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"
     volumes:
       - ${CADDYFILE}:/etc/caddy/Caddyfile:ro
       - ./client:/srv/client:ro
