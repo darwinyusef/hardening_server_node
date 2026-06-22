@@ -2,23 +2,22 @@
 # =============================================================
 # migrate.sh — Inicialización de la base de datos CEFIT
 # =============================================================
-# Conecta por TCP al contenedor cefit_db (o a cualquier host
-# PostgreSQL) y aplica el esquema + datos iniciales.
+# Crea el rol app_user y aplica el esquema completo (database.sql)
+# contra un PostgreSQL instalado manualmente en el host.
 #
-# Uso dentro del stack docker-compose.db.yml (recomendado):
-#   docker compose -f docker-compose.db.yml --profile init up --abort-on-container-exit db-init
+# Uso (desde la raíz del proyecto):
+#   PGPASSWORD=<clave_postgres> DB_PASSWORD=<clave_app_user> bash scripts/migrate.sh
 #
-# Uso manual desde la máquina host:
-#   PGPASSWORD=<superuser_pass> DB_PASSWORD=<app_pass> bash scripts/migrate.sh
-#
-# Variables de entorno configurables:
-#   PGHOST       host o IP (default: 127.0.0.1)
-#   PGPORT       puerto    (default: 5432)
+# Variables configurables:
+#   PGHOST       host (default: 127.0.0.1)
+#   PGPORT       puerto (default: 5432)
 #   PGUSER       superusuario (default: postgres)
-#   PGPASSWORD   contraseña del superusuario (obligatorio)
+#   PGPASSWORD   contraseña del superusuario  ← obligatorio
 #   PGDATABASE   nombre de la BD (default: registro_usuarios)
-#   DB_PASSWORD  contraseña del usuario app_user (obligatorio)
+#   DB_PASSWORD  contraseña de app_user       ← obligatorio
 #   SCHEMA_FILE  ruta al SQL (default: ./database.sql)
+#
+# Ver POSTGRESQL_SETUP.md para el proceso completo.
 # =============================================================
 
 set -euo pipefail

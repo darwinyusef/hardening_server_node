@@ -20,7 +20,7 @@ Dominio: `iapixelcode.com` · Stack: Caddy + Node.js + PostgreSQL + Prometheus +
 
 | Usuario | Contraseña |
 |---|---|
-| `admin` | valor de `GRAFANA_PASSWORD` en `.env` |
+| `admin` | valor de `GRAFANA_PASSWORD` en el env file |
 
 ### Prometheus — interno (no expuesto públicamente)
 
@@ -28,13 +28,17 @@ Dominio: `iapixelcode.com` · Stack: Caddy + Node.js + PostgreSQL + Prometheus +
 
 ## Stack de servicios
 
-| Contenedor | Imagen | Puerto externo | Función |
+| Servicio | Imagen / Tecnología | Puerto externo | Función |
 |---|---|---|---|
 | `cefit_caddy` | `caddy:2-alpine` | `80`, `443` | Reverse proxy + TLS Let's Encrypt |
-| `cefit_app` | Node.js 20 | — (interno) | API REST |
-| `cefit_db` | `postgres:16-alpine` | `127.0.0.1:5432` | Base de datos (stack separado) |
+| `cefit_app` | Node.js 20 (Docker) | — (interno) | API REST |
+| PostgreSQL 16 | Instalado en el host | — (solo loopback) | Base de datos |
 | `cefit_prometheus` | `prom/prometheus:v3` | `127.0.0.1:9090` | Métricas |
 | `cefit_grafana` | `grafana/grafana:11` | — (vía Caddy) | Dashboards |
+
+> PostgreSQL corre directamente en el host (no en Docker).
+> El contenedor `cefit_app` lo alcanza vía `host.docker.internal`.
+> Ver **`POSTGRESQL_SETUP.md`** para instalación y migración.
 
 ---
 
@@ -43,41 +47,41 @@ Dominio: `iapixelcode.com` · Stack: Caddy + Node.js + PostgreSQL + Prometheus +
 | Herramienta | Versión mínima |
 |---|---|
 | Docker + Compose | 24.x / v2.x |
+| PostgreSQL | 16.x (instalado en el host) |
 
 ---
 
 ## Entornos
 
-El entorno se selecciona con `--env-file`. Un solo cambio lo controla todo: URLs, Caddyfile, credenciales.
+El entorno se selecciona con `--env-file`. Un solo cambio controla URLs, Caddyfile y credenciales.
 
 | Archivo | Entorno | Acceso |
 |---|---|---|
 | `.env.local` | Desarrollo local | `https://localhost` · Grafana `https://localhost:3001` |
 | `.env.prod` | Producción | `https://iapixelcode.com` · Grafana `https://grafana.iapixelcode.com` |
 
-> `.env.local` y `.env.prod` están en `.gitignore`. Crea los tuyos copiando `.env.example` como base.
+> `.env.local` y `.env.prod` están en `.gitignore`. Créalos copiando `.env.example` como base.
 
 ---
 
 ## Arranque
 
-La base de datos corre en un **stack independiente** (`docker-compose.db.yml`).
-El stack principal (`docker-compose.yml`) se conecta a ella a través de la red externa `cefit_db_net`.
+### Paso previo — Base de datos
+
+Instala PostgreSQL en el host y ejecuta la migración **una sola vez** antes de levantar Docker.
+Sigue el paso a paso en **`POSTGRESQL_SETUP.md`**.
+
+```bash
+# Migración manual (PostgreSQL ya instalado y corriendo en el host)
+PGPASSWORD=<clave_postgres> DB_PASSWORD=<clave_app_user> bash scripts/migrate.sh
+```
 
 ### Local
 
 ```bash
-# 1. Completar credenciales
 cp .env.example .env.local
-nano .env.local
+nano .env.local   # ajustar DB_PASSWORD, JWT_SECRET, etc.
 
-# 2. Base de datos
-docker compose -f docker-compose.db.yml --env-file .env.local up -d db
-
-# 3. Esquema (solo la primera vez)
-docker compose -f docker-compose.db.yml --env-file .env.local --profile init up --abort-on-container-exit db-init
-
-# 4. Stack principal
 docker compose --env-file .env.local up -d
 ```
 
@@ -87,17 +91,9 @@ El certificado TLS es auto-firmado (Caddy CA local) — el navegador pedirá ace
 ### Producción
 
 ```bash
-# 1. Completar credenciales y apuntar el DNS al servidor
 cp .env.example .env.prod
-nano .env.prod   # cambiar todos los valores CAMBIAR_*
+nano .env.prod   # completar todos los valores CAMBIAR_*
 
-# 2. Base de datos
-docker compose -f docker-compose.db.yml --env-file .env.prod up -d db
-
-# 3. Esquema (solo la primera vez)
-docker compose -f docker-compose.db.yml --env-file .env.prod --profile init up --abort-on-container-exit db-init
-
-# 4. Stack principal
 docker compose --env-file .env.prod up -d
 # Caddy obtiene el certificado Let's Encrypt automáticamente
 ```
@@ -106,7 +102,6 @@ docker compose --env-file .env.prod up -d
 
 ```bash
 docker compose --env-file .env.local ps   # o .env.prod
-docker compose -f docker-compose.db.yml --env-file .env.local ps
 ```
 
 ```
@@ -115,8 +110,6 @@ cefit_caddy        Up               0.0.0.0:80->80, 0.0.0.0:443->443
 cefit_app          Up (healthy)     3000/tcp
 cefit_prometheus   Up               127.0.0.1:9090->9090
 cefit_grafana      Up               3000/tcp
-
-cefit_db           Up (healthy)     127.0.0.1:5432->5432
 ```
 
 ---
@@ -124,10 +117,8 @@ cefit_db           Up (healthy)     127.0.0.1:5432->5432
 ## Variables de entorno
 
 ```env
-# PostgreSQL superusuario (solo para migrate.sh)
-POSTGRES_PASSWORD=clave_root_segura
-
-# Conexión de la aplicación (usa app_user)
+# Base de datos (PostgreSQL en el host)
+DB_HOST=host.docker.internal
 DB_USER=app_user
 DB_NAME=registro_usuarios
 DB_PASSWORD=clave_app_segura
@@ -143,16 +134,18 @@ JWT_EXPIRES_IN=2h
 MAIL_USER=tucorreo@gmail.com
 MAIL_PASS=contraseña_de_aplicacion
 
-# URLs
+# URLs (local: https://localhost | prod: https://iapixelcode.com)
 APP_URL=https://iapixelcode.com
 FRONTEND_URL=https://iapixelcode.com
 ALLOWED_ORIGINS=https://iapixelcode.com
 
-# Caddy
+# Caddy (local: ./Caddyfile.local | prod: ./Caddyfile.prod)
 CADDYFILE=./Caddyfile.prod
 
 # Grafana
 GRAFANA_PASSWORD=clave_segura
+GRAFANA_URL=https://grafana.iapixelcode.com
+
 RECOVERY_TOKEN_MINUTES=60
 ```
 
@@ -192,50 +185,32 @@ RECOVERY_TOKEN_MINUTES=60
 ### Ejemplo de uso con curl
 
 ```bash
-# 1. Login — obtener token
 TOKEN=$(curl -s -X POST https://iapixelcode.com/api/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@cefit.com","password":"CefitAdmin2024!"}' \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
 
-# 2. Listar productos
 curl -s https://iapixelcode.com/api/productos \
   -H "Authorization: Bearer $TOKEN"
-
-# 3. Crear producto
-curl -s -X POST https://iapixelcode.com/api/productos \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"nombre":"Nuevo Curso","precio":99000,"stock":10,"categoria":"Cursos"}'
 ```
 
 ---
 
 ## Comandos útiles
 
-Reemplaza `--env-file .env.local` por `--env-file .env.prod` según el entorno.
-
 ```bash
-# ── Base de datos ──────────────────────────────────────────────
-docker compose -f docker-compose.db.yml --env-file .env.local up -d db
-docker compose -f docker-compose.db.yml --env-file .env.local --profile init up --abort-on-container-exit db-init
-docker compose -f docker-compose.db.yml --env-file .env.local exec db psql -U postgres -d registro_usuarios
+# Ver estado
+docker compose --env-file .env.prod ps
 
-# Backup
-docker compose -f docker-compose.db.yml --env-file .env.local exec db \
-  pg_dump -U postgres registro_usuarios > backup_$(date +%Y%m%d_%H%M%S).sql
-
-# ── Stack principal ────────────────────────────────────────────
-docker compose --env-file .env.local ps
-docker compose --env-file .env.local logs -f
-docker compose --env-file .env.local logs -f app
-docker compose --env-file .env.local logs -f caddy
+# Logs en tiempo real
+docker compose --env-file .env.prod logs -f app
+docker compose --env-file .env.prod logs -f caddy
 
 # Reconstruir tras cambios en el código
-docker compose --env-file .env.local up -d --build app
+docker compose --env-file .env.prod up -d --build app
 
-# Reiniciar solo la app
-docker compose --env-file .env.local up -d --no-deps app
+# Backup de PostgreSQL (en el host)
+sudo -u postgres pg_dump registro_usuarios > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
 ---
@@ -245,54 +220,35 @@ docker compose --env-file .env.local up -d --no-deps app
 ```
 hardening_server_node/
 ├── client/                       # Frontend estático (servido por Caddy)
-│   ├── assets/
-│   │   ├── css/style.css
-│   │   └── js/
-│   │       ├── constantes.js
-│   │       ├── notifications.js
-│   │       ├── login.js
-│   │       ├── registro.js
-│   │       ├── dashboard.js
-│   │       ├── olvide.js
-│   │       ├── nueva_password.js
-│   │       └── productos.js
-│   ├── index.html
-│   ├── registro.html
-│   ├── dashboard.html
-│   ├── olvide.html
-│   ├── nueva_password.html
-│   └── productos.html
+│   ├── assets/css/style.css
+│   └── assets/js/
+│       ├── constantes.js
+│       ├── notifications.js
+│       ├── login.js · registro.js · dashboard.js
+│       ├── olvide.js · nueva_password.js
+│       └── productos.js
 ├── monitoring/
 │   ├── prometheus/prometheus.yml
 │   └── grafana/provisioning/
 ├── scripts/
-│   └── migrate.sh                # Inicialización de BD (TCP, sin initdb.d)
+│   └── migrate.sh                # Migración manual contra PostgreSQL del host
 ├── server/
 │   ├── controllers/
-│   │   ├── authController.js
-│   │   ├── recoveryController.js
-│   │   └── productController.js
 │   ├── middleware/
-│   │   ├── authMiddleware.js
-│   │   ├── rateLimiter.js
-│   │   └── metrics.js
 │   ├── routes/
-│   │   ├── authRoutes.js
-│   │   ├── recoveryRoutes.js
-│   │   ├── productRoutes.js
-│   │   └── metricsRoute.js
 │   ├── db.js
 │   └── server.js
 ├── .well-known/security.txt
 ├── Caddyfile.prod                # Let's Encrypt (producción)
-├── Caddyfile.local               # TLS interno (solo desarrollo local)
-├── database.sql                  # Esquema + seed
+├── Caddyfile.local               # TLS interno (desarrollo local)
+├── database.sql                  # Esquema completo + seed
 ├── Dockerfile
 ├── docker-compose.yml            # App + Caddy + Prometheus + Grafana
-├── docker-compose.db.yml         # PostgreSQL (stack independiente)
 ├── .env.example
+├── POSTGRESQL_SETUP.md           # Instalación y migración de PostgreSQL
 ├── HARDENING.md
-└── MONITORING.md
+├── MONITORING.md
+└── README_PRODUCTION.md
 ```
 
 ---
@@ -317,6 +273,7 @@ hardening_server_node/
 
 ## Documentación adicional
 
+- `POSTGRESQL_SETUP.md` — Instalación manual de PostgreSQL y migración del esquema
 - `HARDENING.md` — Medidas de seguridad y justificación (OWASP)
 - `MONITORING.md` — Health checks, métricas, Grafana y diagnóstico
 - `README_PRODUCTION.md` — Guía completa de despliegue en producción
