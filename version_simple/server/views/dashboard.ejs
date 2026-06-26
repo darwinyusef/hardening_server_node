@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Hardening Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
+    nav { background: #1e293b; border-bottom: 1px solid #334155; padding: .8rem 2rem; display: flex; align-items: center; gap: 1rem; }
+    nav strong { color: #38bdf8; font-size: 1rem; flex: 1; }
+    nav a { color: #94a3b8; text-decoration: none; font-size: .9rem; }
+    nav a:hover { color: #e2e8f0; }
+    nav button { background: #ef4444; border: none; color: #fff; padding: .4rem .9rem; border-radius: 4px; cursor: pointer; font-size: .85rem; }
+    .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    .badge { display: inline-block; padding: .2rem .6rem; border-radius: 999px; font-size: .75rem; font-weight: 600; text-transform: uppercase; margin-left: .5rem; }
+    .admin    { background: #7c3aed; }
+    .vendedor { background: #0ea5e9; }
+    .usuario  { background: #334155; }
+    h2 { font-size: 1.2rem; margin-bottom: 1rem; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 1.2rem; }
+    .card h3 { font-size: .85rem; color: #64748b; margin-bottom: .4rem; }
+    .card p  { font-size: 1.5rem; font-weight: 700; color: #38bdf8; }
+    section { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    section h2 { font-size: 1rem; color: #94a3b8; border-bottom: 1px solid #334155; padding-bottom: .5rem; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    th { text-align: left; color: #64748b; padding: .4rem .5rem; border-bottom: 1px solid #334155; }
+    td { padding: .5rem .5rem; border-bottom: 1px solid #1e293b; }
+    select { background: #0f172a; border: 1px solid #475569; color: #e2e8f0; border-radius: 4px; padding: .2rem .5rem; font-size: .8rem; }
+    .tag { font-size: .7rem; padding: .15rem .5rem; border-radius: 999px; background: #334155; }
+  </style>
+</head>
+<body>
+  <nav>
+    <strong>Hardening Demo</strong>
+    <a href="/productos">Productos</a>
+    <span>
+      <%= user.nombre %>
+      <span class="badge <%= user.rol %>"><%= user.rol %></span>
+    </span>
+    <button onclick="logout()">Cerrar sesión</button>
+  </nav>
+
+  <div class="container">
+    <div class="cards" id="stats"></div>
+
+    <% if (user.rol === 'admin') { %>
+    <section>
+      <h2>Gestión de Usuarios</h2>
+      <table id="usersTable">
+        <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Cambiar rol</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+    <% } %>
+
+    <section>
+      <h2>Mis datos (GET /api/me)</h2>
+      <pre id="meData" style="color:#a5f3fc;font-size:.8rem;"></pre>
+    </section>
+  </div>
+
+  <script>
+    async function logout() {
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = '/login';
+    }
+
+    async function load() {
+      const me = await fetch('/api/me').then(r => r.json());
+      document.getElementById('meData').textContent = JSON.stringify(me, null, 2);
+
+      <% if (user.rol === 'admin') { %>
+      const users = await fetch('/api/usuarios').then(r => r.json());
+      const tbody = document.querySelector('#usersTable tbody');
+      const roles = ['admin', 'vendedor', 'usuario'];
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td>${u.nombre}</td>
+          <td>${u.email}</td>
+          <td><span class="tag">${u.rol}</span></td>
+          <td>
+            <select onchange="cambiarRol('${u.id}', this.value)">
+              ${roles.map(r => `<option ${r===u.rol?'selected':''}>${r}</option>`).join('')}
+            </select>
+          </td>
+        </tr>`).join('');
+
+      const prods = await fetch('/api/productos').then(r => r.json());
+      document.getElementById('stats').innerHTML = `
+        <div class="card"><h3>Usuarios</h3><p>${users.length}</p></div>
+        <div class="card"><h3>Productos activos</h3><p>${prods.productos.filter(p=>p.activo).length}</p></div>
+        <div class="card"><h3>Total productos</h3><p>${prods.total}</p></div>`;
+      <% } else { %>
+      const prods = await fetch('/api/productos').then(r => r.json());
+      document.getElementById('stats').innerHTML = `
+        <div class="card"><h3>Productos visibles</h3><p>${prods.total}</p></div>`;
+      <% } %>
+    }
+
+    async function cambiarRol(id, rol) {
+      const res = await fetch('/api/usuarios/rol', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, rol })
+      });
+      const json = await res.json();
+      alert(json.message);
+    }
+
+    load();
+  </script>
+</body>
+</html>

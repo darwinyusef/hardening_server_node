@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Productos — Hardening Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
+    nav { background: #1e293b; border-bottom: 1px solid #334155; padding: .8rem 2rem; display: flex; align-items: center; gap: 1rem; }
+    nav strong { color: #38bdf8; flex: 1; }
+    nav a { color: #94a3b8; text-decoration: none; font-size: .9rem; }
+    nav a:hover { color: #e2e8f0; }
+    nav button { background: #ef4444; border: none; color: #fff; padding: .4rem .9rem; border-radius: 4px; cursor: pointer; font-size: .85rem; }
+    .badge { display: inline-block; padding: .2rem .6rem; border-radius: 999px; font-size: .75rem; font-weight: 600; text-transform: uppercase; margin-left: .5rem; }
+    .admin { background:#7c3aed; } .vendedor { background:#0ea5e9; } .usuario { background:#334155; }
+    .container { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+    .toolbar { display: flex; gap: .5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    input, select { padding: .5rem .8rem; background: #1e293b; border: 1px solid #475569; border-radius: 4px; color: #e2e8f0; font-size: .9rem; }
+    .btn { padding: .5rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-size: .9rem; font-weight: 600; }
+    .btn-primary { background: #0ea5e9; color: #fff; }
+    .btn-primary:hover { background: #0284c7; }
+    .btn-danger  { background: #ef4444; color: #fff; font-size: .75rem; padding: .3rem .6rem; }
+    .btn-edit    { background: #f59e0b; color: #0f172a; font-size: .75rem; padding: .3rem .6rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 1.2rem; }
+    .card h3 { font-size: 1rem; margin-bottom: .4rem; }
+    .card .cat { font-size: .75rem; color: #64748b; margin-bottom: .5rem; }
+    .card .precio { font-size: 1.3rem; font-weight: 700; color: #4ade80; }
+    .card .stock  { font-size: .8rem; color: #94a3b8; margin-top: .2rem; }
+    .card .desc   { font-size: .8rem; color: #64748b; margin: .5rem 0; }
+    .actions { display: flex; gap: .4rem; margin-top: .8rem; }
+    .inactivo { opacity: .45; }
+    .tag-inactivo { font-size: .7rem; color: #f87171; margin-left: .4rem; }
+    /* Modal */
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); align-items: center; justify-content: center; }
+    .overlay.show { display: flex; }
+    .modal { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 1.5rem; width: 100%; max-width: 420px; }
+    .modal h2 { font-size: 1.1rem; margin-bottom: 1rem; color: #38bdf8; }
+    .modal label { display: block; font-size: .8rem; color: #94a3b8; margin-bottom: .2rem; }
+    .modal input, .modal select { width: 100%; margin-bottom: .8rem; }
+    .modal-actions { display: flex; gap: .5rem; justify-content: flex-end; }
+    #feedback { font-size: .85rem; margin-bottom: 1rem; display: none; padding: .5rem .8rem; border-radius: 4px; }
+    .ok  { background: #14532d; color: #4ade80; }
+    .err { background: #450a0a; color: #f87171; }
+  </style>
+</head>
+<body>
+  <nav>
+    <strong>Hardening Demo</strong>
+    <a href="/dashboard">Dashboard</a>
+    <span><%= user.nombre %><span class="badge <%= user.rol %>"><%= user.rol %></span></span>
+    <button onclick="logout()">Cerrar sesión</button>
+  </nav>
+
+  <div class="container">
+    <div class="toolbar">
+      <input type="text" id="busqueda" placeholder="Buscar producto..." oninput="cargar()">
+      <select id="categoria" onchange="cargar()">
+        <option value="">Todas las categorías</option>
+      </select>
+      <% if (['admin','vendedor'].includes(user.rol)) { %>
+      <button class="btn btn-primary" onclick="abrirModal()">+ Nuevo producto</button>
+      <% } %>
+    </div>
+
+    <div id="feedback"></div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <!-- Modal crear/editar -->
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h2 id="modalTitle">Nuevo producto</h2>
+      <input type="hidden" id="prodId">
+      <label>Nombre *</label>
+      <input type="text" id="nombre" placeholder="Nombre del producto">
+      <label>Descripción</label>
+      <input type="text" id="descripcion" placeholder="Descripción breve">
+      <label>Precio *</label>
+      <input type="number" id="precio" min="0" step="0.01" placeholder="0.00">
+      <label>Stock</label>
+      <input type="number" id="stock" min="0" placeholder="0">
+      <label>Categoría</label>
+      <input type="text" id="cat" placeholder="Electrónica, Accesorios...">
+      <% if (user.rol === 'admin') { %>
+      <label>Activo</label>
+      <select id="activo"><option value="true">Sí</option><option value="false">No</option></select>
+      <% } %>
+      <div class="modal-actions">
+        <button class="btn" style="background:#334155;color:#e2e8f0" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardar()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const rol = '<%= user.rol %>';
+
+    async function logout() {
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = '/login';
+    }
+
+    function fb(msg, ok) {
+      const el = document.getElementById('feedback');
+      el.textContent = msg;
+      el.className = ok ? 'ok' : 'err';
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 3000);
+    }
+
+    async function cargar() {
+      const busq = document.getElementById('busqueda').value;
+      const cat  = document.getElementById('categoria').value;
+      const params = new URLSearchParams();
+      if (busq) params.set('busqueda', busq);
+      if (cat)  params.set('categoria', cat);
+      const res  = await fetch('/api/productos?' + params);
+      const json = await res.json();
+      renderGrid(json.productos);
+    }
+
+    function renderGrid(productos) {
+      document.getElementById('grid').innerHTML = productos.map(p => `
+        <div class="card ${p.activo ? '' : 'inactivo'}">
+          <h3>${p.nombre}${!p.activo ? '<span class="tag-inactivo">inactivo</span>' : ''}</h3>
+          <div class="cat">${p.categoria}</div>
+          <div class="precio">$${p.precio.toFixed(2)}</div>
+          <div class="stock">Stock: ${p.stock}</div>
+          <div class="desc">${p.descripcion || ''}</div>
+          ${rol === 'admin' || rol === 'vendedor' ? `
+          <div class="actions">
+            <button class="btn btn-edit" onclick='editarModal(${JSON.stringify(p)})'>Editar</button>
+            ${rol === 'admin' ? `<button class="btn btn-danger" onclick="eliminar('${p.id}','${p.nombre}')">Desactivar</button>` : ''}
+          </div>` : ''}
+        </div>`).join('');
+    }
+
+    async function loadCategorias() {
+      const res  = await fetch('/api/productos');
+      const json = await res.json();
+      const cats = [...new Set(json.productos.map(p => p.categoria).filter(Boolean))];
+      const sel  = document.getElementById('categoria');
+      cats.forEach(c => sel.innerHTML += `<option>${c}</option>`);
+    }
+
+    function abrirModal(p = null) {
+      document.getElementById('prodId').value      = p?.id || '';
+      document.getElementById('nombre').value      = p?.nombre || '';
+      document.getElementById('descripcion').value = p?.descripcion || '';
+      document.getElementById('precio').value      = p?.precio ?? '';
+      document.getElementById('stock').value       = p?.stock ?? 0;
+      document.getElementById('cat').value         = p?.categoria || '';
+      const activoEl = document.getElementById('activo');
+      if (activoEl) activoEl.value = p?.activo !== false ? 'true' : 'false';
+      document.getElementById('modalTitle').textContent = p ? 'Editar producto' : 'Nuevo producto';
+      document.getElementById('overlay').classList.add('show');
+    }
+    function editarModal(p) { abrirModal(p); }
+    function cerrarModal() { document.getElementById('overlay').classList.remove('show'); }
+
+    async function guardar() {
+      const id = document.getElementById('prodId').value;
+      const body = {
+        nombre:      document.getElementById('nombre').value,
+        descripcion: document.getElementById('descripcion').value,
+        precio:      document.getElementById('precio').value,
+        stock:       document.getElementById('stock').value,
+        categoria:   document.getElementById('cat').value,
+      };
+      const activoEl = document.getElementById('activo');
+      if (activoEl) body.activo = activoEl.value;
+
+      const url    = id ? `/api/productos/${id}` : '/api/productos';
+      const method = id ? 'PUT' : 'POST';
+      const res    = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      const json   = await res.json();
+      fb(json.message, res.ok);
+      if (res.ok) { cerrarModal(); cargar(); }
+    }
+
+    async function eliminar(id, nombre) {
+      if (!confirm(`¿Desactivar "${nombre}"?`)) return;
+      const res  = await fetch(`/api/productos/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      fb(json.message, res.ok);
+      cargar();
+    }
+
+    loadCategorias();
+    cargar();
+  </script>
+</body>
+</html>

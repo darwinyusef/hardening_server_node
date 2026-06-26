@@ -1,0 +1,25 @@
+services:
+  app:
+    build: .
+    container_name: hardening_simple
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV:       production
+      PORT:           3000
+      JWT_SECRET:     ${JWT_SECRET:-cambiar_este_secreto_en_produccion}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-2h}
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+          cpus: '0.5'
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

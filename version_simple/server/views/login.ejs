@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Hardening Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 2rem; width: 100%; max-width: 380px; }
+    h1 { font-size: 1.4rem; margin-bottom: 1.5rem; color: #38bdf8; }
+    label { display: block; font-size: .85rem; color: #94a3b8; margin-bottom: .25rem; }
+    input { width: 100%; padding: .6rem .8rem; background: #0f172a; border: 1px solid #475569; border-radius: 4px; color: #e2e8f0; font-size: .95rem; margin-bottom: 1rem; }
+    button { width: 100%; padding: .7rem; background: #0ea5e9; border: none; border-radius: 4px; color: #fff; font-size: 1rem; cursor: pointer; font-weight: 600; }
+    button:hover { background: #0284c7; }
+    .msg { margin-top: 1rem; text-align: center; font-size: .85rem; color: #64748b; }
+    .msg a { color: #38bdf8; text-decoration: none; }
+    #error { color: #f87171; font-size: .85rem; margin-bottom: .8rem; display: none; }
+    .seed { margin-top: 1.5rem; font-size: .75rem; color: #475569; border-top: 1px solid #334155; padding-top: 1rem; }
+    .seed code { color: #a5f3fc; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Iniciar Sesión</h1>
+    <div id="error"></div>
+    <form id="loginForm">
+      <label>Correo</label>
+      <input type="email" name="email" required autocomplete="email">
+      <label>Contraseña</label>
+      <input type="password" name="password" required autocomplete="current-password">
+      <button type="submit">Entrar</button>
+    </form>
+    <p class="msg">¿Sin cuenta? <a href="/registro">Regístrate</a></p>
+    <div class="seed">
+      <strong>Usuarios seed:</strong><br>
+      <code>admin@test.com</code> / <code>Admin1234!</code> (admin)<br>
+      <code>vendedor@test.com</code> / <code>Vendedor1234!</code> (vendedor)<br>
+      <code>usuario@test.com</code> / <code>Usuario1234!</code> (usuario)
+    </div>
+  </div>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const err = document.getElementById('error');
+      err.style.display = 'none';
+      const data = Object.fromEntries(new FormData(e.target));
+      const res  = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const json = await res.json();
+      if (!res.ok) { err.textContent = json.message; err.style.display = 'block'; return; }
+      window.location.href = '/dashboard';
+    });
+  </script>
+</body>
+</html>

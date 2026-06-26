@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro — Hardening Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 2rem; width: 100%; max-width: 380px; }
+    h1 { font-size: 1.4rem; margin-bottom: 1.5rem; color: #38bdf8; }
+    label { display: block; font-size: .85rem; color: #94a3b8; margin-bottom: .25rem; }
+    input { width: 100%; padding: .6rem .8rem; background: #0f172a; border: 1px solid #475569; border-radius: 4px; color: #e2e8f0; font-size: .95rem; margin-bottom: 1rem; }
+    button { width: 100%; padding: .7rem; background: #0ea5e9; border: none; border-radius: 4px; color: #fff; font-size: 1rem; cursor: pointer; font-weight: 600; }
+    button:hover { background: #0284c7; }
+    .msg { margin-top: 1rem; text-align: center; font-size: .85rem; color: #64748b; }
+    .msg a { color: #38bdf8; text-decoration: none; }
+    #feedback { font-size: .85rem; margin-bottom: .8rem; display: none; }
+    .ok  { color: #4ade80; }
+    .err { color: #f87171; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Crear Cuenta</h1>
+    <div id="feedback"></div>
+    <form id="regForm">
+      <label>Nombre</label>
+      <input type="text" name="nombre" required>
+      <label>Correo</label>
+      <input type="email" name="email" required>
+      <label>Contraseña <small style="color:#475569">(mínimo 8 caracteres)</small></label>
+      <input type="password" name="password" required minlength="8">
+      <button type="submit">Registrarse</button>
+    </form>
+    <p class="msg">¿Ya tienes cuenta? <a href="/login">Inicia sesión</a></p>
+  </div>
+  <script>
+    document.getElementById('regForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fb  = document.getElementById('feedback');
+      fb.style.display = 'none';
+      const data = Object.fromEntries(new FormData(e.target));
+      const res  = await fetch('/api/registro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const json = await res.json();
+      fb.className = res.ok ? 'ok' : 'err';
+      fb.textContent = json.message;
+      fb.style.display = 'block';
+      if (res.ok) setTimeout(() => window.location.href = '/login', 1500);
+    });
+  </script>
+</body>
+</html>
