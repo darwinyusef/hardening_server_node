@@ -32,7 +32,6 @@
     .actions { display: flex; gap: .4rem; margin-top: .8rem; }
     .inactivo { opacity: .45; }
     .tag-inactivo { font-size: .7rem; color: #f87171; margin-left: .4rem; }
-    /* Modal */
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); align-items: center; justify-content: center; }
     .overlay.show { display: flex; }
     .modal { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 1.5rem; width: 100%; max-width: 420px; }
@@ -50,17 +49,17 @@
     <strong>Hardening Demo</strong>
     <a href="/dashboard">Dashboard</a>
     <span><%= user.nombre %><span class="badge <%= user.rol %>"><%= user.rol %></span></span>
-    <button onclick="logout()">Cerrar sesión</button>
+    <button id="btnLogout">Cerrar sesión</button>
   </nav>
 
   <div class="container">
     <div class="toolbar">
-      <input type="text" id="busqueda" placeholder="Buscar producto..." oninput="cargar()">
-      <select id="categoria" onchange="cargar()">
+      <input type="text" id="busqueda" placeholder="Buscar producto...">
+      <select id="categoria">
         <option value="">Todas las categorías</option>
       </select>
       <% if (['admin','vendedor'].includes(user.rol)) { %>
-      <button class="btn btn-primary" onclick="abrirModal()">+ Nuevo producto</button>
+      <button class="btn btn-primary" id="btnNuevo">+ Nuevo producto</button>
       <% } %>
     </div>
 
@@ -88,20 +87,42 @@
       <select id="activo"><option value="true">Sí</option><option value="false">No</option></select>
       <% } %>
       <div class="modal-actions">
-        <button class="btn" style="background:#334155;color:#e2e8f0" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn btn-primary" onclick="guardar()">Guardar</button>
+        <button class="btn" id="btnCancelar" style="background:#334155;color:#e2e8f0">Cancelar</button>
+        <button class="btn btn-primary" id="btnGuardar">Guardar</button>
       </div>
     </div>
   </div>
 
-  <script>
+  <script nonce="<%= nonce %>">
     const rol = '<%= user.rol %>';
 
-    async function logout() {
+    // ── Logout ────────────────────────────────────────────────────
+    document.getElementById('btnLogout').addEventListener('click', async () => {
       await fetch('/api/logout', { method: 'POST' });
       window.location.href = '/login';
-    }
+    });
 
+    // ── Búsqueda y filtro ─────────────────────────────────────────
+    document.getElementById('busqueda').addEventListener('input', cargar);
+    document.getElementById('categoria').addEventListener('change', cargar);
+
+    // ── Nuevo producto ────────────────────────────────────────────
+    const btnNuevo = document.getElementById('btnNuevo');
+    if (btnNuevo) btnNuevo.addEventListener('click', () => abrirModal(null));
+
+    // ── Modal: cancelar y guardar ─────────────────────────────────
+    document.getElementById('btnCancelar').addEventListener('click', cerrarModal);
+    document.getElementById('btnGuardar').addEventListener('click', guardar);
+
+    // ── Delegación de eventos en el grid (editar / desactivar) ────
+    document.getElementById('grid').addEventListener('click', (e) => {
+      const editBtn = e.target.closest('[data-action="editar"]');
+      const delBtn  = e.target.closest('[data-action="desactivar"]');
+      if (editBtn) abrirModal(JSON.parse(editBtn.dataset.prod));
+      if (delBtn)  eliminar(delBtn.dataset.id, delBtn.dataset.nombre);
+    });
+
+    // ── Feedback ──────────────────────────────────────────────────
     function fb(msg, ok) {
       const el = document.getElementById('feedback');
       el.textContent = msg;
@@ -110,9 +131,10 @@
       setTimeout(() => el.style.display = 'none', 3000);
     }
 
+    // ── Cargar productos ──────────────────────────────────────────
     async function cargar() {
-      const busq = document.getElementById('busqueda').value;
-      const cat  = document.getElementById('categoria').value;
+      const busq   = document.getElementById('busqueda').value;
+      const cat    = document.getElementById('categoria').value;
       const params = new URLSearchParams();
       if (busq) params.set('busqueda', busq);
       if (cat)  params.set('categoria', cat);
@@ -122,6 +144,7 @@
     }
 
     function renderGrid(productos) {
+      const canEdit = rol === 'admin' || rol === 'vendedor';
       document.getElementById('grid').innerHTML = productos.map(p => `
         <div class="card ${p.activo ? '' : 'inactivo'}">
           <h3>${p.nombre}${!p.activo ? '<span class="tag-inactivo">inactivo</span>' : ''}</h3>
@@ -129,10 +152,10 @@
           <div class="precio">$${p.precio.toFixed(2)}</div>
           <div class="stock">Stock: ${p.stock}</div>
           <div class="desc">${p.descripcion || ''}</div>
-          ${rol === 'admin' || rol === 'vendedor' ? `
+          ${canEdit ? `
           <div class="actions">
-            <button class="btn btn-edit" onclick='editarModal(${JSON.stringify(p)})'>Editar</button>
-            ${rol === 'admin' ? `<button class="btn btn-danger" onclick="eliminar('${p.id}','${p.nombre}')">Desactivar</button>` : ''}
+            <button class="btn btn-edit" data-action="editar" data-prod='${JSON.stringify(p).replace(/'/g, "&#39;")}'>Editar</button>
+            ${rol === 'admin' ? `<button class="btn btn-danger" data-action="desactivar" data-id="${p.id}" data-nombre="${p.nombre}">Desactivar</button>` : ''}
           </div>` : ''}
         </div>`).join('');
     }
@@ -142,10 +165,11 @@
       const json = await res.json();
       const cats = [...new Set(json.productos.map(p => p.categoria).filter(Boolean))];
       const sel  = document.getElementById('categoria');
-      cats.forEach(c => sel.innerHTML += `<option>${c}</option>`);
+      cats.forEach(c => { const o = document.createElement('option'); o.textContent = c; sel.appendChild(o); });
     }
 
-    function abrirModal(p = null) {
+    // ── Modal ─────────────────────────────────────────────────────
+    function abrirModal(p) {
       document.getElementById('prodId').value      = p?.id || '';
       document.getElementById('nombre').value      = p?.nombre || '';
       document.getElementById('descripcion').value = p?.descripcion || '';
@@ -157,11 +181,13 @@
       document.getElementById('modalTitle').textContent = p ? 'Editar producto' : 'Nuevo producto';
       document.getElementById('overlay').classList.add('show');
     }
-    function editarModal(p) { abrirModal(p); }
-    function cerrarModal() { document.getElementById('overlay').classList.remove('show'); }
+
+    function cerrarModal() {
+      document.getElementById('overlay').classList.remove('show');
+    }
 
     async function guardar() {
-      const id = document.getElementById('prodId').value;
+      const id   = document.getElementById('prodId').value;
       const body = {
         nombre:      document.getElementById('nombre').value,
         descripcion: document.getElementById('descripcion').value,
@@ -174,7 +200,7 @@
 
       const url    = id ? `/api/productos/${id}` : '/api/productos';
       const method = id ? 'PUT' : 'POST';
-      const res    = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      const res    = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const json   = await res.json();
       fb(json.message, res.ok);
       if (res.ok) { cerrarModal(); cargar(); }

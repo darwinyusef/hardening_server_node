@@ -39,7 +39,7 @@
       <code>usuario@test.com</code> / <code>Usuario1234!</code> (usuario)
     </div>
   </div>
-  <script>
+  <script nonce="<%= nonce %>">
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const err = document.getElementById('error');

@@ -35,7 +35,7 @@
     </form>
     <p class="msg">¿Ya tienes cuenta? <a href="/login">Inicia sesión</a></p>
   </div>
-  <script>
+  <script nonce="<%= nonce %>">
     document.getElementById('regForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const fb  = document.getElementById('feedback');
