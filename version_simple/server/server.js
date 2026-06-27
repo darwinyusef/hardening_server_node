@@ -20,7 +20,11 @@ app.set('trust proxy', 1);
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Nonce por petición para CSP
+// /metrics ANTES de helmet y rate-limiter — Prometheus lo scrapea limpio
+app.use(metricsMiddleware);
+app.get('/metrics', metricsHandler);
+
+// Nonce por petición para CSP (solo vistas del navegador)
 app.use((req, res, next) => {
     res.locals.nonce = crypto.randomBytes(16).toString('base64');
     next();
@@ -38,10 +42,6 @@ app.use((req, res, next) => {
         }
     })(req, res, next);
 });
-
-// Métricas antes del rate limiter para no consumir cuota
-app.use(metricsMiddleware);
-app.get('/metrics', metricsHandler);
 
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: false }));
