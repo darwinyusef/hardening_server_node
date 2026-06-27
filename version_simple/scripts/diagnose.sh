@@ -7,56 +7,50 @@ echo "════════════════════════�
 
 echo ""
 echo "── 1. Contenedores corriendo ──────────────"
-docker ps --format "  {{.Names}}  {{.Status}}  {{.Ports}}"
+docker ps --format "  {{.Names}}  |  {{.Status}}  |  {{.Ports}}"
 
 echo ""
-echo "── 2. App responde /metrics ───────────────"
-curl -s "$URL/metrics" | head -6 || echo "  ERROR: no responde"
+echo "── 2. App responde /metrics (primeras 8 líneas) ─"
+curl -s "$URL/metrics" 2>/dev/null | grep -m 8 "^#\|^nodejs\|^http\|^process" \
+    || echo "  ERROR: $URL/metrics no responde"
 
 echo ""
-echo "── 3. Prometheus llega a app:3000/metrics ─"
+echo "── 3. Prometheus llega a app:3000/metrics ────────"
 docker exec hardening_prometheus \
-    wget -qO- http://app:3000/metrics 2>&1 | head -6 \
-    || echo "  ERROR: wget falló"
+    wget -qO- http://app:3000/metrics 2>&1 | grep -m 6 "^#\|^nodejs\|^process\|^http\|Error\|failed" \
+    || echo "  ERROR: no se pudo conectar"
 
 echo ""
-echo "── 4. Targets en Prometheus ───────────────"
+echo "── 4. Estado del target en Prometheus ────────────"
 docker exec hardening_prometheus \
-    wget -qO- 'http://localhost:9090/api/v1/targets' 2>/dev/null \
-    | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-for t in d['data']['activeTargets']:
-    print('  health:', t['health'])
-    print('  url:   ', t['scrapeUrl'])
-    print('  error: ', t.get('lastError','(ninguno)'))
-" || echo "  ERROR: Prometheus no responde"
+    wget -qO- "http://localhost:9090/api/v1/targets" 2>/dev/null \
+    | grep -o '"health":"[^"]*"\|"lastError":"[^"]*"\|"scrapeUrl":"[^"]*"' \
+    | tr ',' '\n' \
+    || echo "  ERROR: Prometheus no responde en 9090"
 
 echo ""
-echo "── 5. ¿Hay datos en Prometheus? ───────────"
+echo "── 5. ¿Hay datos de heap en Prometheus? ──────────"
 docker exec hardening_prometheus \
-    wget -qO- 'http://localhost:9090/api/v1/query?query=nodejs_heap_size_used_bytes' 2>/dev/null \
-    | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-r = d['data']['result']
-print('  Resultados:', len(r))
-if r: print('  Valor:', r[0]['value'])
-else: print('  SIN DATOS — Prometheus no está scrapeando')
-" || echo "  ERROR: Prometheus no responde"
+    wget -qO- "http://localhost:9090/api/v1/query?query=nodejs_heap_size_used_bytes" 2>/dev/null \
+    | grep -o '"result":\[\]' && echo "  SIN DATOS — Prometheus no scrapeó aún" \
+    || docker exec hardening_prometheus \
+        wget -qO- "http://localhost:9090/api/v1/query?query=nodejs_heap_size_used_bytes" 2>/dev/null \
+        | grep -o '"value":\[[^]]*\]'
 
 echo ""
-echo "── 6. Datasource en Grafana ───────────────"
+echo "── 6. Datasource registrado en Grafana ───────────"
 docker exec hardening_grafana \
-    wget -qO- 'http://admin:admin123@localhost:3000/api/datasources' 2>/dev/null \
-    | python3 -c "
-import sys, json
-ds = json.load(sys.stdin)
-for d in ds:
-    print('  nombre:', d.get('name'))
-    print('  uid:   ', d.get('uid'))
-    print('  url:   ', d.get('url'))
-" || echo "  ERROR: Grafana no responde"
+    wget -qO- "http://admin:admin123@localhost:3000/api/datasources" 2>/dev/null \
+    | grep -o '"name":"[^"]*"\|"uid":"[^"]*"\|"url":"[^"]*"' \
+    || echo "  ERROR: Grafana no responde"
+
+echo ""
+echo "── 7. Logs recientes de Prometheus ───────────────"
+docker logs hardening_prometheus 2>&1 | grep -i "error\|warn\|scrape\|target" | tail -8
+
+echo ""
+echo "── 8. Logs recientes de App ──────────────────────"
+docker logs hardening_simple 2>&1 | tail -6
 
 echo ""
 echo "══════════════════════════════════════════"
