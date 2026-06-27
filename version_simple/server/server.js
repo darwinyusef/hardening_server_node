@@ -6,7 +6,8 @@ const cookieParser = require('cookie-parser');
 const crypto       = require('crypto');
 const path         = require('path');
 const db           = require('./db');
-const { globalLimiter } = require('./middleware/rateLimiter');
+const { globalLimiter }                  = require('./middleware/rateLimiter');
+const { metricsMiddleware, metricsHandler } = require('./middleware/metrics');
 
 if (!process.env.JWT_SECRET) {
     console.error('FATAL: JWT_SECRET no está definido');
@@ -37,6 +38,10 @@ app.use((req, res, next) => {
         }
     })(req, res, next);
 });
+
+// Métricas antes del rate limiter para no consumir cuota
+app.use(metricsMiddleware);
+app.get('/metrics', metricsHandler);
 
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: false }));
